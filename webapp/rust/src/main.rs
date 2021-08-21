@@ -135,7 +135,7 @@ impl Default for MySQLConnectionEnv {
             3306
         };
         Self {
-            host: std::env::var("MYSQL_HOST").unwrap_or_else(|_| "192.168.0.12".to_owned()),
+            host: std::env::var("MYSQL_HOST").unwrap_or_else(|_| "".to_owned()),
             port,
             user: std::env::var("MYSQL_USER").unwrap_or_else(|_| "isucon".to_owned()),
             db_name: std::env::var("MYSQL_DBNAME").unwrap_or_else(|_| "isucondition".to_owned()),
