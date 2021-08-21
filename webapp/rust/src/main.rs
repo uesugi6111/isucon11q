@@ -484,6 +484,23 @@ async fn get_me(
     Ok(HttpResponse::Ok().json(GetMeResponse { jia_user_id }))
 }
 
+#[derive(Debug, serde::Serialize)]
+struct GetIsuList {
+    isu_id: i64,
+    jia_isu_uuid: String,
+    name: String,
+    character: String,
+    #[serde(skip)]
+    jia_user_id: String,
+
+    condition_id: i64,
+    #[serde(skip)]
+    timestamp: DateTime<chrono::FixedOffset>,
+    is_sitting: bool,
+    condition: String,
+    message: String,
+}
+
 // ISUの一覧を取得
 #[actix_web::get("/api/isu")]
 async fn get_isu_list(
@@ -494,15 +511,21 @@ async fn get_isu_list(
 
     let mut tx = pool.begin().await.map_err(SqlxError)?;
 
-    let isu_list: Vec<Isu> =
-        sqlx::query_as("SELECT * FROM `isu` WHERE `jia_user_id` = ? ORDER BY `id` DESC")
+    let mut isu_list: Vec<Isu> =
+    // TODO index の作成
+    // アスタの削除
+        sqlx::query_as("SELECT * FROM `isu` WHERE `jia_user_id` = ? ")
             .bind(&jia_user_id)
             .fetch_all(&mut tx)
             .await
             .map_err(SqlxError)?;
 
+    isu_list.sort_by_key(|x| std::cmp::Reverse(x.id));
+
     let mut response_list = Vec::new();
     for isu in isu_list {
+        // TODO index の作成
+        // アスタの削除
         let last_condition: Option<IsuCondition> = sqlx::query_as(
             "SELECT * FROM `isu_condition` WHERE `jia_isu_uuid` = ? ORDER BY `timestamp` DESC LIMIT 1"
         )
@@ -659,6 +682,7 @@ async fn post_isu(
         .map_err(SqlxError)?;
 
     let isu: Isu =
+    // TODO index
         sqlx::query_as("SELECT * FROM `isu` WHERE `jia_user_id` = ? AND `jia_isu_uuid` = ?")
             .bind(&jia_user_id)
             .bind(&jia_isu_uuid)
@@ -681,6 +705,7 @@ async fn get_isu_id(
     let jia_user_id = require_signed_in(pool.as_ref(), session).await?;
 
     let isu: Option<Isu> =
+    // TODO index 667行目と一緒かも
         sqlx::query_as("SELECT * FROM `isu` WHERE `jia_user_id` = ? AND `jia_isu_uuid` = ?")
             .bind(&jia_user_id)
             .bind(jia_isu_uuid.as_ref())
@@ -705,6 +730,7 @@ async fn get_isu_icon(
     let jia_user_id = require_signed_in(pool.as_ref(), session).await?;
 
     let image: Option<Vec<u8>> = sqlx::query_scalar(
+        // TODO index 667行目と一緒かも
         "SELECT `image` FROM `isu` WHERE `jia_user_id` = ? AND `jia_isu_uuid` = ?",
     )
     .bind(&jia_user_id)
@@ -754,6 +780,7 @@ async fn get_isu_graph(
     let mut tx = pool.begin().await.map_err(SqlxError)?;
 
     let count: i64 = sqlx::query_scalar(
+        // TODO index 667行目と一緒かも
         "SELECT COUNT(*) FROM `isu` WHERE `jia_user_id` = ? AND `jia_isu_uuid` = ?",
     )
     .bind(&jia_user_id)
@@ -785,6 +812,7 @@ async fn generate_isu_graph_response(
         DateTime::from_utc(NaiveDateTime::from_timestamp(0, 0), JST_OFFSET.fix());
 
     let mut rows = sqlx::query_as(
+        // 複合インデックス
         "SELECT * FROM `isu_condition` WHERE `jia_isu_uuid` = ? ORDER BY `timestamp` ASC",
     )
     .bind(jia_isu_uuid)
@@ -985,6 +1013,7 @@ async fn get_isu_conditions(
     };
 
     let isu_name: Option<String> =
+    // TODO 複合インデックス
         sqlx::query_scalar("SELECT name FROM `isu` WHERE `jia_isu_uuid` = ? AND `jia_user_id` = ?")
             .bind(jia_isu_uuid.as_ref())
             .bind(&jia_user_id)
@@ -1023,6 +1052,7 @@ async fn get_isu_conditions_from_db(
 ) -> sqlx::Result<Vec<GetIsuConditionResponse>> {
     let conditions: Vec<IsuCondition> = if let Some(ref start_time) = start_time {
         sqlx::query_as(
+            // TODO きれいにしたい
             "SELECT * FROM `isu_condition` WHERE `jia_isu_uuid` = ? AND `timestamp` < ?	AND ? <= `timestamp` ORDER BY `timestamp` DESC",
         )
             .bind(jia_isu_uuid)
@@ -1077,6 +1107,7 @@ fn calculate_condition_level(condition: &str) -> Option<&'static str> {
 #[actix_web::get("/api/trend")]
 async fn get_trend(pool: web::Data<sqlx::MySqlPool>) -> actix_web::Result<HttpResponse> {
     let character_list: Vec<String> =
+    // TODO ？？？？
         sqlx::query_scalar("SELECT `character` FROM `isu` GROUP BY `character`")
             .fetch_all(pool.as_ref())
             .await
@@ -1085,6 +1116,7 @@ async fn get_trend(pool: web::Data<sqlx::MySqlPool>) -> actix_web::Result<HttpRe
     let mut res = Vec::new();
 
     for character in character_list {
+        // TODO インデックス
         let isu_list: Vec<Isu> = sqlx::query_as("SELECT * FROM `isu` WHERE `character` = ?")
             .bind(&character)
             .fetch_all(pool.as_ref())
@@ -1096,6 +1128,7 @@ async fn get_trend(pool: web::Data<sqlx::MySqlPool>) -> actix_web::Result<HttpRe
         let mut character_critical_isu_conditions = Vec::new();
         for isu in isu_list {
             let conditions: Vec<IsuCondition> = sqlx::query_as(
+                // TODO 複合インデックス
                 "SELECT * FROM `isu_condition` WHERE `jia_isu_uuid` = ? ORDER BY timestamp DESC",
             )
             .bind(&isu.jia_isu_uuid)
@@ -1180,6 +1213,7 @@ async fn post_isu_condition(
             return Err(actix_web::error::ErrorBadRequest("bad request body"));
         }
 
+        // バルクインサート
         sqlx::query(
             "INSERT INTO `isu_condition` (`jia_isu_uuid`, `timestamp`, `is_sitting`, `condition`, `message`) VALUES (?, ?, ?, ?, ?)",
         )
