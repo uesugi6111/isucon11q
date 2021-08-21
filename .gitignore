@@ -1,0 +1,17 @@
+.bash_logout
+.bashrc
+.bundle/
+.cache/
+.cargo/
+.config/
+.cpanm/
+.local/
+.npm/
+.perl-cpm/
+.profile
+.rustup/
+.ssh/
+go/
+local/
+*/.gitignore
+.viminfo
