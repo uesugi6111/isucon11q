@@ -1195,8 +1195,12 @@ async fn get_trend(pool: web::Data<sqlx::MySqlPool>) -> actix_web::Result<HttpRe
             critical: character_critical_isu_conditions,
         });
     }
-
-    Ok(HttpResponse::Ok().json(res))
+    let mut builder = Response::Ok();
+    builder.set(CacheControl(vec![
+        CacheDirective::MaxAge(1u32),
+        CacheDirective::Public,
+    ]));
+    Ok(builder.json(res))
 }
 
 // ISUからのコンディションを受け取る
