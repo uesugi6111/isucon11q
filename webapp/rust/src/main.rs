@@ -1197,6 +1197,7 @@ async fn get_trend(pool: web::Data<sqlx::MySqlPool>) -> actix_web::Result<HttpRe
     Ok(HttpResponse::Ok().json(res))
 }
 
+use sql_builder::SqlBuilder;
 // ISUからのコンディションを受け取る
 #[actix_web::post("/api/condition/{jia_isu_uuid}")]
 async fn post_isu_condition(
@@ -1226,8 +1227,13 @@ async fn post_isu_condition(
         return Err(actix_web::error::ErrorNotFound("not found: isu"));
     }
 
-    let mut sql = "INSERT INTO `isu_condition` (`jia_isu_uuid`, `timestamp`, `is_sitting`, `condition`, `message`) VALUES".to_string();
-    for (i, cond) in req.iter().enumerate() {
+    let mut sqlbuilder = SqlBuilder::insert_into("isu_condition")
+        .field("timestamp")
+        .field("is_sitting")
+        .field("condition")
+        .field("message")
+        .clone();
+    for cond in req.iter() {
         let timestamp: DateTime<chrono::FixedOffset> = DateTime::from_utc(
             NaiveDateTime::from_timestamp(cond.timestamp, 0),
             JST_OFFSET.fix(),
@@ -1236,20 +1242,21 @@ async fn post_isu_condition(
         if !is_valid_condition_format(&cond.condition) {
             return Err(actix_web::error::ErrorBadRequest("bad request body"));
         }
-        sql += &format!(
-            "({}, {}, {}, {}, {})",
+        sqlbuilder.values(&[
             jia_isu_uuid.as_ref(),
-            &timestamp.naive_local(),
-            &cond.is_sitting,
+            &timestamp.naive_local().to_string(),
+            &if cond.is_sitting {
+                "true".to_owned()
+            } else {
+                "false".to_owned()
+            },
             &cond.condition,
             &cond.message,
-        );
-        if i != req.len() - 1 {
-            sql += ",";
-        }
+        ]);
 
         // バルクインサート
     }
+    let sql = sqlbuilder.sql().unwrap();
     sqlx::query(&sql)
         .execute(&mut tx)
         .await
