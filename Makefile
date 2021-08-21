@@ -8,7 +8,7 @@ MYSQL_SLOW_LOG := /var/log/mysql/slow.log
 MYSQL_CONFIG := /etc/mysql/my.cnf
 NGINX_CONFIG := /etc/nginx/nginx.conf
 
-DB_HOST := 127.0.0.1
+DB_HOST := 192.168.0.12
 DB_PORT := 3306
 DB_USER := isucon
 DB_PASS := isucon
