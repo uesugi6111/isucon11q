@@ -1195,8 +1195,10 @@ async fn get_trend(pool: web::Data<sqlx::MySqlPool>) -> actix_web::Result<HttpRe
             critical: character_critical_isu_conditions,
         });
     }
-    let mut builder = Response::Ok();
-    builder.set(CacheControl(vec![
+    use actix_web::http::header::{CacheControl, CacheDirective};
+    use actix_web::HttpResponse;
+    let mut builder = HttpResponse::Ok();
+    builder.insert_header(CacheControl(vec![
         CacheDirective::MaxAge(1u32),
         CacheDirective::Public,
     ]));
