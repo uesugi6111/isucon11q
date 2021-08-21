@@ -1135,8 +1135,7 @@ fn calculate_condition_level(condition: &str) -> Option<&'static str> {
     }
 }
 use actix_web::http::header::LastModified;
-use actix_web::HttpResponse;
-use std::time::{Duration, SystemTime};
+use std::time::SystemTime;
 // ISUの性格毎の最新のコンディション情報
 #[actix_web::get("/api/trend")]
 async fn get_trend(pool: web::Data<sqlx::MySqlPool>) -> actix_web::Result<HttpResponse> {
