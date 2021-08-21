@@ -38,3 +38,4 @@ CREATE TABLE `isu_association_config` (
 
 
 create index aaa  on isu_condition(jia_isu_uuid,timestamp);
+create index bbb  on isu(`character`);
