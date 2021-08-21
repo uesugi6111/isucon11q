@@ -62,11 +62,11 @@ pprof:
 
 .PHONY: application_build
 application_build: ## application build (wip)
-	@echo "Please implement!!"
+	cargo build --manifest-path /home/isucon/webapp/rust/Cargo.toml --release
 
 .PHONY: application_restart
 application_restart: ## application restart (wip)
-	@echo "Please implement!!"
+	sudo systemctl restart isucondition.rust.service
 
 .PHONY: middleware_restart
 middleware_restart: ## mysqlとnginxのrestart
