@@ -43,8 +43,8 @@ bootstrap() {
 }
 
 git_config() {
-  git config --global user.email "htilcs1115@gmail.com"
-  git config --global user.name "k-nasa"
+  git config --global user.email "aburaya6111@gmail.com"
+  git config --global user.name "uesugi6111"
 
   git config --global core.editor 'vim -c "set fenc=utf-8"'
 }
