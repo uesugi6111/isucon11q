@@ -501,6 +501,16 @@ struct GetIsuList {
     message: String,
 }
 
+#[derive(Debug, serde::Serialize)]
+struct IsuMini {
+    id: i64,
+    jia_isu_uuid: String,
+    name: String,
+    character: String,
+    #[serde(skip)]
+    jia_user_id: String,
+}
+
 // ISUの一覧を取得
 #[actix_web::get("/api/isu")]
 async fn get_isu_list(
@@ -511,10 +521,10 @@ async fn get_isu_list(
 
     let mut tx = pool.begin().await.map_err(SqlxError)?;
 
-    let mut isu_list: Vec<Isu> =
+    let mut isu_list: Vec<IsuMini> =
     // TODO index の作成
     // アスタの削除
-        sqlx::query_as("SELECT * FROM `isu` WHERE `jia_user_id` = ? ")
+        sqlx::query_as("SELECT id,jia_isu_uuid,name,`character`,jia_user_id FROM `isu` WHERE `jia_user_id` =  ? ")
             .bind(&jia_user_id)
             .fetch_all(&mut tx)
             .await
