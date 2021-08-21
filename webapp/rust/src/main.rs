@@ -510,6 +510,19 @@ struct IsuMini {
     #[serde(skip)]
     jia_user_id: String,
 }
+impl sqlx::FromRow<'_, sqlx::mysql::MySqlRow> for IsuMini {
+    fn from_row(row: &sqlx::mysql::MySqlRow) -> sqlx::Result<Self> {
+        use sqlx::Row as _;
+
+        Ok(Self {
+            id: row.try_get("id")?,
+            jia_isu_uuid: row.try_get("jia_isu_uuid")?,
+            name: row.try_get("name")?,
+            character: row.try_get("character")?,
+            jia_user_id: row.try_get("jia_user_id")?,
+        })
+    }
+}
 
 // ISUの一覧を取得
 #[actix_web::get("/api/isu")]
@@ -1213,7 +1226,8 @@ async fn post_isu_condition(
         return Err(actix_web::error::ErrorNotFound("not found: isu"));
     }
 
-    for cond in req.iter() {
+    let mut sql = "INSERT INTO `isu_condition` (`jia_isu_uuid`, `timestamp`, `is_sitting`, `condition`, `message`) VALUES".to_string();
+    for (i, cond) in req.iter().enumerate() {
         let timestamp: DateTime<chrono::FixedOffset> = DateTime::from_utc(
             NaiveDateTime::from_timestamp(cond.timestamp, 0),
             JST_OFFSET.fix(),
@@ -1222,20 +1236,24 @@ async fn post_isu_condition(
         if !is_valid_condition_format(&cond.condition) {
             return Err(actix_web::error::ErrorBadRequest("bad request body"));
         }
+        sql += &format!(
+            "({}, {}, {}, {}, {})",
+            jia_isu_uuid.as_ref(),
+            &timestamp.naive_local(),
+            &cond.is_sitting,
+            &cond.condition,
+            &cond.message,
+        );
+        if i != req.len() - 1 {
+            sql += ",";
+        }
 
         // バルクインサート
-        sqlx::query(
-            "INSERT INTO `isu_condition` (`jia_isu_uuid`, `timestamp`, `is_sitting`, `condition`, `message`) VALUES (?, ?, ?, ?, ?)",
-        )
-            .bind(jia_isu_uuid.as_ref())
-            .bind(&timestamp.naive_local())
-            .bind(&cond.is_sitting)
-            .bind(&cond.condition)
-            .bind(&cond.message)
-            .execute(&mut tx)
-            .await.map_err(SqlxError)?;
     }
-
+    sqlx::query(&sql)
+        .execute(&mut tx)
+        .await
+        .map_err(SqlxError)?;
     tx.commit().await.map_err(SqlxError)?;
 
     Ok(HttpResponse::Accepted().finish())
