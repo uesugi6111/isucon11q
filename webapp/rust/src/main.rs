@@ -1140,11 +1140,13 @@ async fn get_trend(pool: web::Data<sqlx::MySqlPool>) -> actix_web::Result<HttpRe
 
     for character in character_list {
         // TODO インデックス
-        let isu_list: Vec<Isu> = sqlx::query_as("SELECT * FROM `isu` WHERE `character` = ?")
-            .bind(&character)
-            .fetch_all(pool.as_ref())
-            .await
-            .map_err(SqlxError)?;
+        let isu_list: Vec<IsuMini> = sqlx::query_as(
+            "SELECT id,jia_isu_uuid,name,`character`,jia_user_id FROM `isu` WHERE `character` = ?",
+        )
+        .bind(&character)
+        .fetch_all(pool.as_ref())
+        .await
+        .map_err(SqlxError)?;
 
         let mut character_info_isu_conditions = Vec::new();
         let mut character_warning_isu_conditions = Vec::new();
