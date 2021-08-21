@@ -98,6 +98,15 @@ struct IsuCondition {
     message: String,
     created_at: DateTime<chrono::FixedOffset>,
 }
+// struct IsuConditionMini {
+//     id: i64,
+//     jia_isu_uuid: String,
+//     timestamp: DateTime<chrono::FixedOffset>,
+//     is_sitting: bool,
+//     condition: String,
+//     message: String,
+//     created_at: DateTime<chrono::FixedOffset>,
+// }
 impl sqlx::FromRow<'_, sqlx::mysql::MySqlRow> for IsuCondition {
     fn from_row(row: &sqlx::mysql::MySqlRow) -> sqlx::Result<Self> {
         use sqlx::Row as _;
@@ -1125,7 +1134,9 @@ fn calculate_condition_level(condition: &str) -> Option<&'static str> {
         _ => None,
     }
 }
-
+use actix_web::http::header::LastModified;
+use actix_web::HttpResponse;
+use std::time::{Duration, SystemTime};
 // ISUの性格毎の最新のコンディション情報
 #[actix_web::get("/api/trend")]
 async fn get_trend(pool: web::Data<sqlx::MySqlPool>) -> actix_web::Result<HttpResponse> {
@@ -1202,6 +1213,7 @@ async fn get_trend(pool: web::Data<sqlx::MySqlPool>) -> actix_web::Result<HttpRe
         CacheDirective::MaxAge(1u32),
         CacheDirective::Public,
     ]));
+    builder.insert_header(LastModified(SystemTime::now().into()));
     Ok(builder.json(res))
 }
 
