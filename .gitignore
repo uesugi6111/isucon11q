@@ -1,5 +1,4 @@
 .bash_logout
-.bashrc
 .bundle/
 .cache/
 .cargo/
@@ -8,7 +7,6 @@
 .local/
 .npm/
 .perl-cpm/
-.profile
 .rustup/
 .ssh/
 go/
