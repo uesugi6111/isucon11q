@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-APP_DIR := todo
+APP_DIR := /home/isucon
 
 NGINX_LOG := /var/log/nginx/access.log
 MYSQL_SLOW_LOG := /var/log/mysql/slow.log
@@ -10,9 +10,9 @@ NGINX_CONFIG := /etc/nginx/nginx.conf
 
 DB_HOST := 127.0.0.1
 DB_PORT := 3306
-DB_USER := todo
-DB_PASS := todo
-DB_NAME := todo
+DB_USER := isucon
+DB_PASS := isucon
+DB_NAME := isucondition
 
 EDIT_MYSQL_CONFIG := $(APP_DIR)/my.cnf
 EDIT_NGINX_CONFIG := $(APP_DIR)/nginx.conf
